@@ -30,6 +30,8 @@ async function GetWordList() {
     .then(function(response) {
       wordList = response.data;
       wordList = wordList.split("\r\n");
+      // GetInitialIv();
+      IterateWordList();
     })
     .catch(function(error) {
       console.log(error);
@@ -64,7 +66,6 @@ function IterateWordList() {
     });
   }, 2000);
 }
-IterateWordList();
 
 async function PostPlaintext(word, wantedWord) {
   const response = await axios.post("http://localhost:3000/cbc/iv", {
@@ -76,4 +77,12 @@ async function PostPlaintext(word, wantedWord) {
     console.log(challengeCiphertext);
     console.log(cipher);
   }
+}
+
+async function GetInitialIv() {
+  const response = await axios.post("http://localhost:3000/cbc/iv", {
+    plaintext: "test"
+  });
+  iv = response.data.iv;
+  console.log(iv);
 }
