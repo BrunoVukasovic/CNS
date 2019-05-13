@@ -3,17 +3,6 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const clientRSAPublic = fs.readFileSync(
-  path.join(__dirname, "RSA_keys", "public.pem"),
-  {
-    encoding: "hex"
-  }
-);
-
-const clientRSAPrivate = fs.readFileSync(
-  path.join(__dirname, "RSA_keys", "private.pem")
-);
-// // // // // // // // // // // // // //
 const clientPublicRSAKey = fs.readFileSync(
   path.join(__dirname, "RSA_keys", "public.pem"),
   {
@@ -73,68 +62,4 @@ async function KeyExchange() {
   console.log("\nDjeljeni DH kljuc je:\n" + sharedDHKey.toString("hex"));
   console.log("\nKljuc kojim je enkriptiran vic je:\n" + K.toString("hex"));
 }
-
 KeyExchange();
-
-async function RequestFunction() {
-  let publicKeyRequest = await axios.get(
-    "http://localhost:3000/asymm/rsa/server"
-  );
-  let publicKeyServer = await publicKeyRequest.data.key;
-  console.log(publicKeyRequest.data);
-
-  let rsaClientResult = await axios.post(
-    "http://localhost:3000/asymm/rsa/client",
-    {
-      key: clientRSAPublic
-    }
-  );
-  let rsaClient = await rsaClientResult.data.result;
-  console.log(rsaClient);
-  // // // // // // // // // // // // // // //// // // // // // // // // // // // // //
-  const DHClientKey = crypto.getDiffieHellman("modp15");
-  DHClientKey.generateKeys();
-
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.write(DHClientKey.getPublicKey("hex"));
-  sign.end();
-  signature = sign.sign(clientRSAPrivate, "hex");
-
-  let dhClientResult = await axios.post(
-    "http://localhost:3000/asymm/dh/client",
-    {
-      key: DHClientKey.getPublicKey("hex"),
-      signature: signature
-    }
-  );
-  let dhClient = await dhClientResult.data.result;
-  console.log(dhClient);
-
-  let challenge = await axios.get("http://localhost:3000/asymm/challenge");
-  let DHServerKey = await challenge.data.key;
-  let myChallenge = await challenge.data.challenge;
-  console.log("server dh je " + DHServerKey);
-  console.log("CHALLENGE JE ", myChallenge);
-
-  const dhSharedKey = DHClientKey.computeSecret(DHServerKey, "hex");
-  const K = crypto.pbkdf2Sync(dhSharedKey, "ServerClient", 1, 32, "sha512");
-
-  console.log("kluc je ", K.toString("hex"));
-
-  // moje
-  let ciphertext = challenge.data.challenge.ciphertext;
-  console.log(ciphertext);
-  ciphertext = Buffer.from(ciphertext, "hex");
-  let key = Buffer.from(K, "hex");
-  console.log(key); // ovo je kljuc za AES a ne key stream
-  console.log(ciphertext);
-  let length = ciphertext.length / 2;
-  xorResult = Buffer.alloc(length);
-  console.log(xorResult);
-  for (let i = 0; i < ciphertext.length; i++) {
-    xorResult[i] = ciphertext[i] ^ key[i];
-  }
-  xorResult = xorResult.toString("utf8");
-  console.log(xorResult);
-}
-// RequestFunction();
